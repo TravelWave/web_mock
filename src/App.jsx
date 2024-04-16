@@ -12,6 +12,14 @@ const MapWithSearch = () => {
   const [originSuggestions, setOriginSuggestions] = useState([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState([]);
   const [route, setRoute] = useState(null);
+  const [originSuggestionsVisible, setOriginSuggestionsVisible] =
+    useState(false);
+  const [destinationSuggestionsVisible, setDestinationSuggestionsVisible] =
+    useState(false);
+  const [originInputFocused, setOriginInputFocused] = useState(false);
+  const [destinationInputFocused, setDestinationInputFocused] = useState(false);
+
+  const mapRef = useRef(null); // Create a ref to store the map instance
 
   useEffect(() => {
     if (origin) {
@@ -24,8 +32,6 @@ const MapWithSearch = () => {
       geocode(destination).then(setDestinationSuggestions);
     }
   }, [destination]);
-
-  const mapRef = useRef(null); // Create a ref to store the map instance
 
   function handleOrigin(suggestion) {
     setActualOrigin([parseFloat(suggestion.lat), parseFloat(suggestion.lon)]);
@@ -51,6 +57,7 @@ const MapWithSearch = () => {
   };
 
   async function fetchRoute(origin, destination) {
+    mapRef.current.setView(actualOrigin, 13);
     const response = await fetch(
       `https://graphhopper.com/api/1/route?point=${origin[0]},${origin[1]}&point=${destination[0]},${destination[1]}&key=${API_KEY}`
     );
@@ -102,58 +109,82 @@ const MapWithSearch = () => {
   }
 
   return (
-    <div className="p-8 grid h-screen gap-x-6 grid-cols-12 ">
+    <div className="p-8 grid h-screen gap-x-6 grid-cols-12 bg-gradient-to-b from-gray-900 to-gray-800">
       <div className="space-y-6 col-span-3">
         <div className="relative">
           <input
-            className="border px-5 py-2 rounded-lg border-gray-700 focus:outline-none focus:ring-0"
+            className="border px-5 py-3 rounded-lg border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-800 text-white placeholder-gray-500"
             type="text"
             value={origin}
             onChange={(e) => searchOrigin(e.target.value)}
             placeholder="Enter Origin"
+            onMouseEnter={() => {
+              setOriginSuggestionsVisible(true);
+              setDestinationSuggestionsVisible(false);
+            }}
           />
-          <div className="suggestions-container">
-            {originSuggestions.map((suggestion, index) => (
-              <div
-                className="suggestion"
-                key={index}
-                onClick={() => handleOrigin(suggestion)}
-              >
-                {suggestion.display_name}
-              </div>
-            ))}
-          </div>
+          {(originSuggestionsVisible || originInputFocused) && (
+            <div
+              className="suggestions-container bg-gray-800 border border-gray-700 rounded-lg mt-1 overflow-y-auto max-h-48"
+              onMouseEnter={() => setOriginSuggestionsVisible(true)}
+              onMouseLeave={() => setOriginSuggestionsVisible(false)}
+              onFocus={() => setOriginInputFocused(true)}
+              onBlur={() => setOriginInputFocused(false)}
+            >
+              {originSuggestions.map((suggestion, index) => (
+                <div
+                  className="suggestion px-4 py-2 cursor-pointer text-gray-300 hover:bg-gray-700"
+                  key={index}
+                  onClick={() => handleOrigin(suggestion)}
+                >
+                  {suggestion.display_name}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <input
-            className="border px-5 py-2 rounded-lg border-gray-700 focus:outline-none focus:ring-0"
+            className="border px-5 py-3 rounded-lg border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-800 text-white placeholder-gray-500"
             type="text"
             value={destination}
             onChange={(e) => searchDestination(e.target.value)}
             placeholder="Enter Destination"
+            onMouseEnter={() => {
+              setDestinationSuggestionsVisible(true);
+              setOriginSuggestionsVisible(false); // Close origin suggestions
+            }}
           />
-          <div className="suggestions-container">
-            {destinationSuggestions.map((suggestion, index) => (
-              <div
-                className="suggestion"
-                key={index}
-                onClick={() => handleDestination(suggestion)}
-              >
-                {suggestion.display_name}
-              </div>
-            ))}
-          </div>
+          {(destinationSuggestionsVisible || destinationInputFocused) && (
+            <div
+              className="suggestions-container bg-gray-800 border border-gray-700 rounded-lg mt-1 overflow-y-auto max-h-48"
+              onMouseEnter={() => setDestinationSuggestionsVisible(true)}
+              onMouseLeave={() => setDestinationSuggestionsVisible(false)}
+              onFocus={() => setDestinationInputFocused(true)}
+              onBlur={() => setDestinationInputFocused(false)}
+            >
+              {destinationSuggestions.map((suggestion, index) => (
+                <div
+                  className="suggestion px-4 py-2 cursor-pointer text-gray-300 hover:bg-gray-700"
+                  key={index}
+                  onClick={() => handleDestination(suggestion)}
+                >
+                  {suggestion.display_name}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
           onClick={() => fetchRoute(actualOrigin, actualDestination)}
           type="button"
-          className="h-fit bg-yellow-500 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-0"
+          className="h-fit bg-yellow-500 text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 hover:bg-yellow-600"
         >
           Get Route
         </button>
       </div>
-      <div className="col-span-9 h-full bg-black">
+      <div className="col-span-9 h-full">
         <MapContainer
           center={actualOrigin}
           zoom={13}
